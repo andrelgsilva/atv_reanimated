@@ -9,54 +9,77 @@ export default function GostoNaoGosto() {
   const gostoRef = useRef(null);
   const naoGostoRef = useRef(null);
 
-  const [zones, setZones] = useState({
-    gosto: null,
-    naoGosto: null,
-  });
+  const [zones, setZones] = useState({ gosto: null, naoGosto: null });
+  const [itemsState, setItemsState] = useState({});
 
   const medirZonas = () => {
-    requestAnimationFrame(() => {
-      if (!gostoRef.current || !naoGostoRef.current) return;
+    gostoRef.current?.measureInWindow((x, y, width, height) => {
+      setZones((prev) => ({
+        ...prev,
+        gosto: { x, y, width, height },
+      }));
+    });
 
-      gostoRef.current.measure((x, y, width, height, pageX, pageY) => {
-        naoGostoRef.current.measure(
-          (x2, y2, width2, height2, pageX2, pageY2) => {
-            setZones({
-              gosto: { x: pageX, y: pageY, width, height },
-              naoGosto: {
-                x: pageX2,
-                y: pageY2,
-                width: width2,
-                height: height2,
-              },
-            });
-          }
-        );
-      });
+    naoGostoRef.current?.measureInWindow((x, y, width, height) => {
+      setZones((prev) => ({
+        ...prev,
+        naoGosto: { x, y, width, height },
+      }));
     });
   };
 
-  return (
-    <GestureHandlerRootView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <Text style={styles.title}>Arraste para Gosto ou Não Gosto</Text>
+  const gostoCount = Object.values(itemsState).filter(
+    (v) => v === "gosto"
+  ).length;
 
-        <View style={styles.dragArea}>
-          {items.map((item, index) => (
-            <DraggableItem key={index} item={item} zones={zones} />
+  const naoGostoCount = Object.values(itemsState).filter(
+    (v) => v === "naoGosto"
+  ).length;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.title}>Arraste os itens</Text>
+
+        <View style={styles.itemsArea}>
+          {items.map((item) => (
+            <DraggableItem
+              key={item}
+              item={item}
+              zones={zones}
+              itemsState={itemsState}
+              setItemsState={setItemsState}
+            />
           ))}
         </View>
 
-        <View style={styles.dropZones} onLayout={medirZonas}>
-          <View style={styles.dropZone} ref={gostoRef}>
-            <Text style={styles.zoneTitle}>Gosto</Text>
+        <View style={styles.zones}>
+          <View
+            style={[styles.zone, { backgroundColor: "#FFE3E3" }]}
+            ref={naoGostoRef}
+            onLayout={medirZonas}
+          >
+            <Text style={styles.zoneText}>Nao gosto</Text>
+
+            {naoGostoCount > 0 && (
+              <Text style={styles.zoneCount}>
+                {naoGostoCount} item(s)
+              </Text>
+            )}
           </View>
 
           <View
-            style={[styles.dropZone, { backgroundColor: "#FFE66D" }]}
-            ref={naoGostoRef}
+            style={[styles.zone, { backgroundColor: "#C7F9CC" }]}
+            ref={gostoRef}
+            onLayout={medirZonas}
           >
-            <Text style={styles.zoneTitle}>Não Gosto</Text>
+            <Text style={styles.zoneText}>Gosto</Text>
+
+            {gostoCount > 0 && (
+              <Text style={styles.zoneCount}>
+                {gostoCount} item(s)
+              </Text>
+            )}
           </View>
         </View>
       </SafeAreaView>
@@ -65,45 +88,53 @@ export default function GostoNaoGosto() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
-  safeArea: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
     textAlign: "center",
-    marginVertical: 20,
-    color: "#333",
+    fontSize: 22,
+    marginVertical: 10,
+    fontWeight: "bold",
   },
-  dragArea: {
+
+  itemsArea: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-around",
-    paddingHorizontal: 40,
-    marginBottom: 40,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    minHeight: 200,
   },
-  dropZones: {
-    flex: 1,
+
+  zones: {
     flexDirection: "row",
-    paddingHorizontal: 20,
+    justifyContent: "space-around",
+    marginTop: 30,
+    paddingHorizontal: 10,
+    paddingBottom: 20,
+
+    // zonas ficam acima dos itens
+    zIndex: 10,
+    elevation: 10,
   },
-  dropZone: {
-    flex: 1,
-    marginHorizontal: 10,
-    backgroundColor: "#A8E6CF",
-    borderRadius: 20,
+
+  zone: {
+    width: 150,
+    height: 200,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    minHeight: 150,
-    elevation: 3,
+    borderWidth: 2,
+    borderColor: "#ddd",
   },
-  zoneTitle: {
-    fontSize: 18,
+
+  zoneText: {
     fontWeight: "bold",
-    color: "#333",
+    fontSize: 14,
+  },
+
+  zoneCount: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#555",
   },
 });
